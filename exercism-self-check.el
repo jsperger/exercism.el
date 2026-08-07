@@ -218,7 +218,7 @@
 (defun exercism--self-check-probe-tracks ()
   "Probe the Exercism tracks API and record one self-check result."
   (setq exercism--self-check-pending (1+ exercism--self-check-pending))
-  (request "https://exercism.org/api/v2/tracks"
+  (request (exercism--api-v2-url "/tracks")
     :parser #'json-read
     :success (cl-function
               (lambda (&key data &allow-other-keys)

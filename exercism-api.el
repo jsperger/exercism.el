@@ -15,6 +15,19 @@
 (require 'url)
 (require 'exercism-core)
 
+(defconst exercism--api-v2-base-url "https://api.exercism.org/v2"
+  "Base URL for Exercism website v2 API requests.
+
+Uses the API host rather than https://exercism.org so non-browser
+clients are not blocked by Cloudflare bot challenges.")
+
+(defun exercism--api-v2-url (path &optional query)
+  "Return a v2 API URL for PATH with optional QUERY string.
+
+PATH must begin with a slash.  QUERY is appended after `?' when non-nil."
+  (concat exercism--api-v2-base-url path
+          (when query (concat "?" query))))
+
 (defun exercism--load-api-token ()
   "Return the configured Exercism API token, or nil when unset."
   (unless (and (boundp 'exercism--api-token) exercism--api-token)
@@ -48,7 +61,7 @@
                 (request-response-status-code response)))
       (format "%s" error-thrown)))
 
-;; GET https://exercism.org/api/v2/tracks
+;; GET https://api.exercism.org/v2/tracks
 ;;
 ;; Sample response (one track, unauthenticated):
 ;;
@@ -67,9 +80,9 @@
 ;; has_notifications, and a non-null last_touched_at timestamp.
 
 (defun exercism--list-tracks (callback &optional error-callback)
-  "Call CALLBACK with a list of track plists from GET /api/v2/tracks.
+  "Call CALLBACK with a list of track plists from GET /v2/tracks.
 
-Uses GET https://exercism.org/api/v2/tracks.  The endpoint is public;
+Uses GET https://api.exercism.org/v2/tracks.  The endpoint is public;
 when an API token is configured, auth headers are sent so joined-track
 fields are included.
 
@@ -90,7 +103,7 @@ Optional query params (not used here): `criteria', `tags', and `status'
 
 When ERROR-CALLBACK is provided, it is called with the same keyword
 arguments as `request' error handlers instead of signaling."
-  (let ((url "https://exercism.org/api/v2/tracks")
+  (let ((url (exercism--api-v2-url "/tracks"))
         (headers (exercism--maybe-auth-headers))
         (success (cl-function
                   (lambda (&key data &allow-other-keys)
@@ -111,7 +124,7 @@ arguments as `request' error handlers instead of signaling."
            :error error-handler
            (when headers (list :headers headers)))))
 
-;; GET https://exercism.org/api/v2/tracks/{slug}/exercises
+;; GET https://api.exercism.org/v2/tracks/{slug}/exercises
 ;;
 ;; Sample response (one exercise, unauthenticated):
 ;;
@@ -136,7 +149,7 @@ arguments as `request' error handlers instead of signaling."
 (defun exercism--list-exercises (track-slug only-unlocked-p callback)
   "Call CALLBACK with exercise plists for TRACK-SLUG.
 
-Uses GET https://exercism.org/api/v2/tracks/{slug}/exercises.  The endpoint
+Uses GET https://api.exercism.org/v2/tracks/{slug}/exercises.  The endpoint
 is public; authentication is optional and this function does not send auth
 headers.
 
@@ -148,7 +161,8 @@ exercise plist includes `slug', `type', `title', `icon_url', `difficulty',
 Without authentication, every exercise has `is_unlocked' set to true, so
 ONLY-UNLOCKED-P has no effect unless auth headers are added later.
 Authenticated users on a joined track get accurate `is_unlocked' values."
-  (request (format "https://exercism.org/api/v2/tracks/%s/exercises" track-slug)
+  (request (exercism--api-v2-url
+            (format "/tracks/%s/exercises" track-slug))
     :parser #'json-read
     :success (cl-function
               (lambda (&key data &allow-other-keys)
@@ -184,8 +198,10 @@ Authenticated users on a joined track get accurate `is_unlocked' values."
     (cl-labels
         ((fetch-page (page)
            (request
-            (format "https://exercism.org/api/v2/solutions?track_slug=%s&page=%d"
-                    (url-encode-url track-slug) page)
+            (exercism--api-v2-url
+             "/solutions"
+             (format "track_slug=%s&page=%d"
+                     (url-encode-url track-slug) page))
             :headers (exercism--auth-headers)
             :parser #'json-read
             :success (cl-function

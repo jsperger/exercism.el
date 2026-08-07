@@ -2310,6 +2310,48 @@
     (exercism--submit-animation-stop)
     (clrhash exercism--exercise-pending-states)))
 
+(defun exercism-ert--capture-request-urls (thunk)
+  "Call THUNK while recording URLs passed to `request', newest last."
+  (let ((urls nil))
+    (cl-letf (((symbol-function 'request)
+               (lambda (url &rest _args)
+                 (setq urls (append urls (list url)))
+                 nil)))
+      (funcall thunk))
+    urls))
+
+(ert-deftest exercism--list-tracks-uses-api-host ()
+  "Tracks API must use api.exercism.org to avoid Cloudflare bot challenges."
+  (let ((exercism--api-token nil)
+        (urls (exercism-ert--capture-request-urls
+               (lambda ()
+                 (exercism--list-tracks #'ignore)))))
+    (should (equal '("https://api.exercism.org/v2/tracks") urls))))
+
+(ert-deftest exercism--list-exercises-uses-api-host ()
+  "Exercise list API must use api.exercism.org to avoid Cloudflare bot challenges."
+  (let ((urls (exercism-ert--capture-request-urls
+               (lambda ()
+                 (exercism--list-exercises "go" nil #'ignore)))))
+    (should (equal '("https://api.exercism.org/v2/tracks/go/exercises")
+                   urls))))
+
+(ert-deftest exercism--list-solutions-uses-api-host ()
+  "Solutions API must use api.exercism.org to avoid Cloudflare bot challenges."
+  (let ((exercism--api-token "test-token")
+        (urls (exercism-ert--capture-request-urls
+               (lambda ()
+                 (exercism--list-solutions "go" #'ignore)))))
+    (should (equal '("https://api.exercism.org/v2/solutions?track_slug=go&page=1")
+                   urls))))
+
+(ert-deftest exercism--self-check-probe-tracks-uses-api-host ()
+  "Self-check tracks probe must use api.exercism.org."
+  (let ((exercism--self-check-pending 0)
+        (urls (exercism-ert--capture-request-urls
+               #'exercism--self-check-probe-tracks)))
+    (should (equal '("https://api.exercism.org/v2/tracks") urls))))
+
 (ert-deftest exercism--self-check-done-decrements-pending ()
   "Characterize: each async completion decrements pending and messages at zero."
   (let ((exercism--self-check-pending 2)
