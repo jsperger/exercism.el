@@ -414,6 +414,27 @@
       (when (file-exists-p state-file)
         (delete-file state-file)))))
 
+(ert-deftest exercism--save-state-includes-lexical-binding-cookie ()
+  (let ((state-file (make-temp-file "exercism-state" nil ".el"))
+        (warnings nil))
+    (unwind-protect
+        (cl-letf ((exercism--state-file state-file)
+                  ((symbol-function 'display-warning)
+                   (lambda (type message &rest _args)
+                     (push (cons type message) warnings))))
+          (setq exercism--current-track "emacs-lisp"
+                exercism--current-exercise "hello-world"
+                exercism--workspace "/tmp/exercism-workspace")
+          (exercism--save-state)
+          (with-temp-buffer
+            (insert-file-contents state-file)
+            (goto-char (point-min))
+            (should (looking-at-p ".*-\\*- lexical-binding: t; -\\*-")))
+          (exercism--load-state)
+          (should (null warnings)))
+      (when (file-exists-p state-file)
+        (delete-file state-file)))))
+
 (ert-deftest exercism--workspace-from-state-missing ()
   (let ((state-file (make-temp-file "exercism-state" nil ".el")))
     (unwind-protect
@@ -514,7 +535,7 @@
            (json-encode `((workspace . ,workspace) (token . "test-token")))
            nil config-file)
           (write-region
-           (format "(setq exercism--current-track %S\n      exercism--current-exercise %S\n      exercism--workspace %S)\n"
+           (format ";;; -*- lexical-binding: t; -*-\n(setq exercism--current-track %S\n      exercism--current-exercise %S\n      exercism--workspace %S)\n"
                    "emacs-lisp" "hello-world" "/tmp/stale-workspace")
            nil state-file)
           (cl-letf ((exercism-config-path config-file)
@@ -2380,7 +2401,7 @@
            (json-encode `((workspace . ,workspace) (token . "test-token")))
            nil config-file)
           (write-region
-           (format "(setq exercism--current-track %S\n      exercism--current-exercise %S\n      exercism--workspace %S)\n"
+           (format ";;; -*- lexical-binding: t; -*-\n(setq exercism--current-track %S\n      exercism--current-exercise %S\n      exercism--workspace %S)\n"
                    "emacs-lisp" "hello-world" "/tmp/stale-workspace")
            nil state-file)
           (cl-letf ((exercism-config-path config-file)

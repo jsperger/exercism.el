@@ -54,7 +54,7 @@
 (defun exercism--save-state ()
   "Persist track, exercise, and workspace to `exercism--state-file'."
   (with-temp-file exercism--state-file
-    (insert ";;; auto-generated — do not edit by hand\n\n")
+    (insert ";;; auto-generated — do not edit by hand -*- lexical-binding: t; -*-\n\n")
     (insert (format "(setq exercism--current-track %S\n" exercism--current-track))
     (insert (format "      exercism--current-exercise %S\n" exercism--current-exercise))
     (insert (format "      exercism--workspace %S)\n" exercism--workspace))))
