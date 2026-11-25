@@ -208,8 +208,8 @@
         (apply #'exercism--self-check-add result))))
   (when (exercism--setup-ok-p)
     (exercism--self-check-add "State file"
-                              (file-exists-p exercism--state-file)
-                              exercism--state-file)
+                              (file-exists-p exercism-state-file)
+                              exercism-state-file)
     (when exercism--current-track
       (exercism--self-check-add "Current track" t exercism--current-track))
     (when exercism--current-exercise

@@ -399,7 +399,7 @@
 (ert-deftest exercism--save-and-load-state ()
   (let ((state-file (make-temp-file "exercism-state" nil ".el")))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file))
+        (cl-letf ((exercism-state-file state-file))
           (setq exercism--current-track "emacs-lisp"
                 exercism--current-exercise "hello-world"
                 exercism--workspace "/tmp/exercism-workspace")
@@ -414,11 +414,12 @@
       (when (file-exists-p state-file)
         (delete-file state-file)))))
 
-(ert-deftest exercism--save-state-includes-lexical-binding-cookie ()
-  (let ((state-file (make-temp-file "exercism-state" nil ".el"))
-        (warnings nil))
+(ert-deftest exercism--save-state-includes-lexical-binding-and-creates-parent-dir ()
+  (let* ((parent (make-temp-file "exercism-state-parent" 'dir))
+         (state-file (expand-file-name "nested/var/exercism-state.el" parent))
+         (warnings nil))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file)
+        (cl-letf ((exercism-state-file state-file)
                   ((symbol-function 'display-warning)
                    (lambda (type message &rest _args)
                      (push (cons type message) warnings))))
@@ -426,19 +427,28 @@
                 exercism--current-exercise "hello-world"
                 exercism--workspace "/tmp/exercism-workspace")
           (exercism--save-state)
+          (should (file-exists-p state-file))
           (with-temp-buffer
             (insert-file-contents state-file)
             (goto-char (point-min))
             (should (looking-at-p ".*-\\*- lexical-binding: t; -\\*-")))
           (exercism--load-state)
           (should (null warnings)))
+      (when (file-exists-p parent)
+        (delete-directory parent t)))))
+
+(ert-deftest exercism--state-file-alias-tracks-exercism-state-file ()
+  (let ((state-file (make-temp-file "exercism-state-alias" nil ".el")))
+    (unwind-protect
+        (let ((exercism-state-file state-file))
+          (should (string= exercism--state-file state-file)))
       (when (file-exists-p state-file)
         (delete-file state-file)))))
 
 (ert-deftest exercism--workspace-from-state-missing ()
   (let ((state-file (make-temp-file "exercism-state" nil ".el")))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file))
+        (cl-letf ((exercism-state-file state-file))
           (delete-file state-file)
           (should (null (exercism--workspace-from-state))))
       (when (file-exists-p state-file)
@@ -448,7 +458,7 @@
   (let ((state-file (make-temp-file "exercism-state" nil ".el"))
         (workspace "/tmp/exercism-saved-workspace"))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file))
+        (cl-letf ((exercism-state-file state-file))
           (setq exercism--current-track "go"
                 exercism--current-exercise "hello-world"
                 exercism--workspace workspace)
@@ -467,7 +477,7 @@
   (let ((state-file (make-temp-file "exercism-state" nil ".el"))
         (workspace "/tmp/exercism-configure-default"))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file))
+        (cl-letf ((exercism-state-file state-file))
           (setq exercism--workspace workspace)
           (exercism--save-state)
           (should (string= (exercism--workspace-configure-default) workspace)))
@@ -477,7 +487,7 @@
 (ert-deftest exercism--workspace-configure-default-fallback ()
   (let ((state-file (make-temp-file "exercism-state" nil ".el")))
     (unwind-protect
-        (cl-letf ((exercism--state-file state-file))
+        (cl-letf ((exercism-state-file state-file))
           (delete-file state-file)
           (should (string= (exercism--workspace-configure-default)
                            exercism--default-workspace)))
@@ -539,7 +549,7 @@
                    "emacs-lisp" "hello-world" "/tmp/stale-workspace")
            nil state-file)
           (cl-letf ((exercism-config-path config-file)
-                    (exercism--state-file state-file))
+                    (exercism-state-file state-file))
             (setq exercism--current-track nil
                   exercism--current-exercise nil
                   exercism--workspace "/tmp/stale-workspace")
@@ -2105,7 +2115,7 @@
            (exercism-ert--run-self-check-without-async)
            (with-current-buffer "*exercism-self-check*"
              (let ((content (buffer-string)))
-               (should (string-match-p (regexp-quote exercism--state-file) content))
+               (should (string-match-p (regexp-quote exercism-state-file) content))
                (should (string-match-p "Current track: go" content))
                (should (string-match-p "Current exercise: hello-world" content))
                (should (< (string-match "State file" content)
@@ -2405,7 +2415,7 @@
                    "emacs-lisp" "hello-world" "/tmp/stale-workspace")
            nil state-file)
           (cl-letf ((exercism-config-path config-file)
-                    (exercism--state-file state-file))
+                    (exercism-state-file state-file))
             (setq exercism--current-track "stale"
                   exercism--current-exercise "stale-ex"
                   exercism--workspace "/tmp/other")

@@ -36,9 +36,13 @@
 (defconst exercism--min-cli-version "3.2.0"
   "Minimum Exercism CLI version required by exercism.el.")
 
-(defvar exercism--state-file
-  (expand-file-name "exercism-state.el" user-emacs-directory)
-  "File persisting the current track, exercise, and workspace.")
+(define-obsolete-variable-alias 'exercism--state-file 'exercism-state-file "1.1.0")
+
+(defcustom exercism-state-file
+  (locate-user-emacs-file "exercism-state.el")
+  "File persisting the current track, exercise, and workspace."
+  :type 'file
+  :group 'exercism)
 
 (defconst exercism--default-workspace
   (expand-file-name "~/Exercism")
@@ -52,26 +56,29 @@
   "Root directory for downloaded Exercism exercises.")
 
 (defun exercism--save-state ()
-  "Persist track, exercise, and workspace to `exercism--state-file'."
-  (with-temp-file exercism--state-file
+  "Persist track, exercise, and workspace to `exercism-state-file'."
+  (let ((dir (file-name-directory exercism-state-file)))
+    (when dir
+      (make-directory dir t)))
+  (with-temp-file exercism-state-file
     (insert ";;; auto-generated — do not edit by hand -*- lexical-binding: t; -*-\n\n")
     (insert (format "(setq exercism--current-track %S\n" exercism--current-track))
     (insert (format "      exercism--current-exercise %S\n" exercism--current-exercise))
     (insert (format "      exercism--workspace %S)\n" exercism--workspace))))
 
 (defun exercism--load-state ()
-  "Load persisted state from `exercism--state-file'."
-  (when (file-exists-p exercism--state-file)
-    (load exercism--state-file nil t)))
+  "Load persisted state from `exercism-state-file'."
+  (when (file-exists-p exercism-state-file)
+    (load exercism-state-file nil t)))
 
 (defun exercism--workspace-from-state ()
-  "Return workspace from `exercism--state-file' without changing live state."
-  (when (file-exists-p exercism--state-file)
+  "Return workspace from `exercism-state-file' without changing live state."
+  (when (file-exists-p exercism-state-file)
     (let ((track exercism--current-track)
           (exercise exercism--current-exercise)
           (workspace exercism--workspace)
           (loaded nil))
-      (load exercism--state-file nil t)
+      (load exercism-state-file nil t)
       (setq loaded exercism--workspace
             exercism--current-track track
             exercism--current-exercise exercise
