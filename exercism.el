@@ -25,9 +25,11 @@
 (require 'exercism-exercise-list)
 (require 'exercism-self-check)
 
+;;;###autoload
 (defun exercism ()
   "Open the Exercism exercise list for the current track."
   (interactive)
+  (exercism--ensure-state-loaded)
   (cond
    ((not (exercism--setup-ok-p))
     (message "[exercism] setup incomplete — running self-check")
@@ -39,9 +41,6 @@
      (lambda (track)
        (exercism--apply-track-selection
         track #'exercism--select-track-and-open-exercises))))))
-
-(exercism--load-state)
-(exercism--reconcile-state-with-config)
 
 (provide 'exercism)
 ;;; exercism.el ends here

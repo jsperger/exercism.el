@@ -250,9 +250,11 @@
                                          error-thrown response))
               (exercism--self-check-done)))))
 
+;;;###autoload
 (defun exercism-self-check ()
   "Verify Exercism CLI setup and API connectivity, then show a report."
   (interactive)
+  (exercism--ensure-state-loaded)
   (exercism--self-check-reset)
   (pop-to-buffer (exercism--self-check-buffer))
   (exercism--self-check-render)

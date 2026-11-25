@@ -11,6 +11,9 @@
 (require 'ert)
 (require 'exercism)
 
+;; Keep unit tests isolated from real user state/config unless explicitly tested.
+(setq exercism--state-loaded t)
+
 (defun exercism-ert--sample-exercises ()
   "Return fixture exercise alists for tests."
   '(((slug . "hello-world")
@@ -444,6 +447,38 @@
           (should (string= exercism--state-file state-file)))
       (when (file-exists-p state-file)
         (delete-file state-file)))))
+
+(ert-deftest exercism--ensure-state-loaded-runs-once ()
+  (let* ((config-file (make-temp-file "exercism-user" nil ".json"))
+         (state-file (make-temp-file "exercism-state" nil ".el"))
+         (workspace (make-temp-file "exercism-workspace" 'dir)))
+    (unwind-protect
+        (progn
+          (write-region
+           (json-encode `((workspace . ,workspace) (token . "test-token")))
+           nil config-file)
+          (let ((exercism-config-path config-file)
+                (exercism-state-file state-file)
+                (exercism--state-loaded nil)
+                (exercism--current-track "emacs-lisp")
+                (exercism--current-exercise "hello-world")
+                (exercism--workspace workspace))
+            (exercism--save-state)
+            (setq exercism--current-track nil
+                  exercism--current-exercise nil
+                  exercism--workspace "/tmp/other")
+            (exercism--ensure-state-loaded)
+            (should exercism--state-loaded)
+            (should (string= exercism--current-track "emacs-lisp"))
+            (should (string= exercism--current-exercise "hello-world"))
+            (should (string= exercism--workspace workspace))
+            ;; Subsequent calls are no-ops and preserve live state.
+            (setq exercism--current-track "go")
+            (exercism--ensure-state-loaded)
+            (should (string= exercism--current-track "go"))))
+      (when (file-exists-p config-file) (delete-file config-file))
+      (when (file-exists-p state-file) (delete-file state-file))
+      (when (file-exists-p workspace) (delete-directory workspace t)))))
 
 (ert-deftest exercism--workspace-from-state-missing ()
   (let ((state-file (make-temp-file "exercism-state" nil ".el")))

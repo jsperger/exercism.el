@@ -604,14 +604,18 @@ Pass DISPLAY-P as `no-display' to re-render without changing windows."
     (user-error "No current exercise"))
   (exercism--submit-slug exercism--current-exercise open-in-browser-after-p))
 
+;;;###autoload
 (defun exercism-submit ()
   "Submit your implementation."
   (interactive)
+  (exercism--ensure-state-loaded)
   (exercism--submit))
 
+;;;###autoload
 (defun exercism-submit-then-open-in-browser ()
   "Submit your implementation, then open the submission page in a browser."
   (interactive)
+  (exercism--ensure-state-loaded)
   (exercism--submit t))
 
 (defun exercism--download-exercise-slug (slug)
@@ -698,9 +702,11 @@ Pass DISPLAY-P as `no-display' to re-render without changing windows."
               (exercism--download-all-queue rest downloaded (1+ failed) skipped))))))
        force))))
 
+;;;###autoload
 (defun exercism-download-all-unlocked-exercises ()
   "Download all unlocked exercises for the current track."
   (interactive)
+  (exercism--ensure-state-loaded)
   (unless exercism--current-track
     (user-error "Set a track first (`t' in the exercise list, or `M-x exercism-exercise-list-set-track')"))
   (exercism--list-exercises
@@ -746,9 +752,11 @@ Pass DISPLAY-P as `no-display' to re-render without changing windows."
       (user-error "Exercise %s is not downloaded" slug))
     (exercism--run-tests-in-dir exercise-dir)))
 
+;;;###autoload
 (defun exercism-run-tests ()
   "Run tests for the current exercise."
   (interactive)
+  (exercism--ensure-state-loaded)
   (unless exercism--current-exercise
     (user-error "No current exercise"))
   (exercism--run-tests-for-slug exercism--current-exercise))

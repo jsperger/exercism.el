@@ -139,9 +139,11 @@ When AFTER-CALLBACK is provided, invoke it after configuration succeeds."
                                           nil))))
     (exercism--configure api-token workspace after-callback)))
 
+;;;###autoload
 (defun exercism-configure ()
   "Configure the Exercism CLI."
   (interactive)
+  (exercism--ensure-state-loaded)
   (exercism--configure-interactive))
 
 (defun exercism--download-exercise (exercise-slug track-slug callback &optional force)

@@ -44,6 +44,9 @@
   :type 'file
   :group 'exercism)
 
+(defvar exercism--state-loaded nil
+  "Non-nil once persisted state has been loaded and reconciled.")
+
 (defconst exercism--default-workspace
   (expand-file-name "~/Exercism")
   "Default Exercism workspace directory (matches the CLI default).")
@@ -70,6 +73,13 @@
   "Load persisted state from `exercism-state-file'."
   (when (file-exists-p exercism-state-file)
     (load exercism-state-file nil t)))
+
+(defun exercism--ensure-state-loaded ()
+  "Load and reconcile persisted state once if not already done."
+  (unless exercism--state-loaded
+    (setq exercism--state-loaded t)
+    (exercism--load-state)
+    (exercism--reconcile-state-with-config)))
 
 (defun exercism--workspace-from-state ()
   "Return workspace from `exercism-state-file' without changing live state."
